@@ -1,8 +1,10 @@
+import { SessionManager } from '../config/api';
+
 const API_BASE_URL = 'http://localhost:5000/api';
 
 export const apiClient = {
   async request(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('auth_token');
+    const token = SessionManager.getToken();
     const headers: Record<string, string> = {
       ...(options.headers as Record<string, string> || {}),
     };

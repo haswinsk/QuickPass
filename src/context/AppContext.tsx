@@ -163,8 +163,9 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
+  const initialSession = SessionManager.getSession();
+  const [currentUser, setCurrentUser] = useState<User | null>(() => initialSession.user ? (initialSession.user as unknown as User) : null);
+  const [token, setToken] = useState<string | null>(() => initialSession.token);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [canteens, setCanteens] = useState<Canteen[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -184,7 +185,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const loadData = useCallback(async () => {
     try {
-      const token = localStorage.getItem('auth_token');
+      const sessionToken = token ?? SessionManager.getToken();
       
       // Load approved organizations (public)
       try {
@@ -195,12 +196,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Load inventories for all organizations from MongoDB
         if (orgs.length > 0) {
           try {
-            if (token) {
-              const canteenPromises = orgs.map(async (org: Organization) => {
+            if (sessionToken) {
+              const canteenOrgIds = currentUser?.role === 'organization_admin' && currentUser.organizationId
+                ? [currentUser.organizationId]
+                : orgs.map((org: Organization) => org._id);
+
+              const canteenPromises = canteenOrgIds.map(async (orgId: string) => {
                 try {
-                  return await organizationsAPI.getCanteens(org._id);
+                  return await organizationsAPI.getCanteens(orgId);
                 } catch (error) {
-                  console.error(`Error loading canteens for ${org._id}:`, error);
+                  console.error(`Error loading canteens for ${orgId}:`, error);
                   return [];
                 }
               });
@@ -249,7 +254,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       // Load orders only if authenticated
-      if (token) {
+      if (sessionToken) {
         try {
           const orders = await ordersAPI.getOrders();
           setOrders(orders);
@@ -267,29 +272,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.error('Error loading orders:', error);
           setOrders([]);
         }
+      } else {
+        setOrders([]);
+        setCanteens([]);
+        setInventories({});
       }
     } catch (error) {
       console.error('Error loading data:', error);
     }
-  }, [currentUser?.role]);
+  }, [currentUser?.organizationId, currentUser?.role, token]);
 
   useEffect(() => {
-    console.log('AppContext useEffect - mounting');
     loadRazorpayScript();
-
-    // Restore session using SessionManager
-    const savedToken = SessionManager.getToken();
-    const savedUser = SessionManager.getUser();
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setCurrentUser(savedUser as unknown as User);
-      localStorage.setItem('auth_token', savedToken);
-    }
-
-    // Load public data
-    console.log('Loading initial data...');
-    loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const login = async (email: string, pass: string) => {
     setIsLoading(true);
@@ -301,9 +300,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setToken(result.token);
         SessionManager.setToken(result.token);
         SessionManager.setUser(result.user);
-        localStorage.setItem('auth_token', result.token);
         showNotification(`Welcome back, ${result.user.name}!`, 'success');
-        loadData();
         return { success: true };
       }
       return { success: false, error: 'Authentication failed.' };
@@ -334,8 +331,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setToken(apiResult.token);
         SessionManager.setToken(apiResult.token);
         SessionManager.setUser(apiResult.user);
-        localStorage.setItem('auth_token', apiResult.token);
-        loadData();
         showNotification(`Signed in as ${name} via Google!`, 'success');
         return { success: true };
       }
@@ -356,10 +351,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(null);
     setToken(null);
     SessionManager.clearSession();
-    localStorage.removeItem('auth_token');
     setCart([]);
     setCartOrgId(null);
     setCartCanteenId(null);
+    setOrders([]);
+    setCanteens([]);
+    setInventories({});
     showNotification('You have been signed out.', 'info');
   };
 

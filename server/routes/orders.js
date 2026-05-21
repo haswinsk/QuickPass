@@ -1,8 +1,48 @@
 import express from 'express';
 import Order from '../models/Order.js';
+import TokenCounter from '../models/TokenCounter.js';
 import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
+
+const getCanteenPrefix = async (orgId, canteenId) => {
+  const Canteen = (await import('../models/Canteen.js')).default;
+  const orgCanteens = await Canteen.find({ organizationId: orgId }).sort({ createdAt: 1, _id: 1 });
+  const index = orgCanteens.findIndex(c => c._id.toString() === canteenId);
+  return `C${index !== -1 ? index + 1 : 1}`;
+};
+
+const getNextTokenNumber = async ({ orgId, orderType, canteenId }) => {
+  const scopeKey = orderType === 'canteen'
+    ? `canteen:${orgId}:${canteenId}`
+    : `${orderType}:${orgId}`;
+
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const counter = await TokenCounter.findOneAndUpdate(
+        { key: scopeKey },
+        { $inc: { sequence: 1 }, $setOnInsert: { sequence: 100 } },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      );
+
+      const prefix = orderType === 'xerox'
+        ? 'X'
+        : orderType === 'stationery'
+          ? 'S'
+          : await getCanteenPrefix(orgId, canteenId);
+
+      return `${prefix}-${counter.sequence}`;
+    } catch (error) {
+      lastError = error;
+      if (error?.code !== 11000 || attempt === 1) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || new Error('Unable to generate token');
+};
 
 // Get all orders (for admin)
 router.get('/', auth, async (req, res) => {
@@ -36,7 +76,7 @@ router.post('/xerox', auth, async (req, res) => {
     }
     
     // Generate token
-    const token = `X-${101 + (await Order.countDocuments({ organizationId: orgId, orderType: 'xerox' }))}`;
+    const token = await getNextTokenNumber({ orgId, orderType: 'xerox' });
     
     const order = await Order.create({
       organizationId: orgId,
@@ -101,7 +141,7 @@ router.post('/stationery', auth, async (req, res) => {
     await inventory.save();
     
     // Generate token
-    const token = `S-${101 + (await Order.countDocuments({ organizationId: orgId, orderType: 'stationery' }))}`;
+    const token = await getNextTokenNumber({ orgId, orderType: 'stationery' });
     const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
     
     const order = await Order.create({
@@ -137,7 +177,7 @@ router.post('/canteen', auth, async (req, res) => {
     const org = await Organization.findById(orgId);
     const canteen = await Canteen.findById(canteenId);
     
-    if (!org || !canteen) {
+    if (!org || !canteen || canteen.organizationId.toString() !== orgId) {
       return res.status(404).json({ message: 'Organization or Canteen not found' });
     }
     
@@ -150,11 +190,7 @@ router.post('/canteen', auth, async (req, res) => {
     }
     
     // Generate token
-    const orgCanteens = await Canteen.find({ organizationId: orgId });
-    const index = orgCanteens.findIndex(c => c._id.toString() === canteenId);
-    const canteenNum = index !== -1 ? (index + 1) : 1;
-    const tokenCount = await Order.countDocuments({ organizationId: orgId, canteenId });
-    const token = `C${canteenNum}-${101 + tokenCount}`;
+    const token = await getNextTokenNumber({ orgId, orderType: 'canteen', canteenId });
     
     const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
     
@@ -190,6 +226,14 @@ router.patch('/:id/status', auth, async (req, res) => {
     
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (req.user.role === 'organization_admin' && order.organizationId.toString() !== req.user.organizationId?.toString()) {
+      return res.status(403).json({ message: 'Not authorized to update this order' });
+    }
+
+    if (req.user.role !== 'organization_admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Not authorized to update orders' });
     }
     
     order.orderStatus = status;

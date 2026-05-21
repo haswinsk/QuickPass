@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Organization, Canteen } from '../mockDB';
 import { uploadAPI } from '../api/client';
-import { Search, Printer, Utensils, ChevronRight, ShoppingBag, Plus, Minus, CreditCard, Ticket, Trash2, Store, MapPin, Upload, CheckCircle } from 'lucide-react';
+import { Search, Printer, Utensils, ChevronRight, ShoppingBag, Plus, Minus, CreditCard, Ticket, Trash2, Store, MapPin, Upload, CheckCircle, Loader2 } from 'lucide-react';
 
 export const StudentDashboard: React.FC = () => {
   const {
@@ -47,6 +47,21 @@ export const StudentDashboard: React.FC = () => {
   // Checkout loading state
   const [isCheckout, setIsCheckout] = useState(false);
 
+  const uploadFileWithRetry = async (file: File) => {
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        return await uploadAPI.uploadFile(file);
+      } catch (error) {
+        lastError = error;
+        if (attempt < 2) {
+          await new Promise(resolve => window.setTimeout(resolve, 350));
+        }
+      }
+    }
+    throw lastError instanceof Error ? lastError : new Error('Upload failed');
+  };
+
   // Real Cloudinary File Upload Handler
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,7 +84,7 @@ export const StudentDashboard: React.FC = () => {
     setUploadProgress(0);
 
     // Simulate upload progress
-    const progressInterval = setInterval(() => {
+    const progressInterval = window.setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 90) {
           clearInterval(progressInterval);
@@ -81,7 +96,7 @@ export const StudentDashboard: React.FC = () => {
 
     // Upload to backend (which uploads to Cloudinary)
     try {
-      const result = await uploadAPI.uploadFile(file);
+      const result = await uploadFileWithRetry(file);
       
       clearInterval(progressInterval);
       setUploadProgress(100);
@@ -100,17 +115,24 @@ export const StudentDashboard: React.FC = () => {
       }
     } catch (error) {
       clearInterval(progressInterval);
-      // Fallback to local base64 if backend upload fails
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setXeroxFile({
-          name: file.name,
-          size: formatBytes(file.size),
-          content: reader.result as string
-        });
-        showNotification(`File "${file.name}" uploaded (local mode)`, 'info');
-      };
-      reader.readAsDataURL(file);
+      const message = error instanceof Error ? error.message : 'Upload failed';
+      const isValidationError = /invalid file type|too large|no file uploaded/i.test(message);
+
+      if (isValidationError) {
+        showNotification(message, 'error');
+      } else {
+        // Fallback to local base64 if backend upload fails transiently.
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setXeroxFile({
+            name: file.name,
+            size: formatBytes(file.size),
+            content: reader.result as string
+          });
+          showNotification(`Cloud upload failed, using local preview for ${file.name}.`, 'info');
+        };
+        reader.readAsDataURL(file);
+      }
     }
 
     setIsUploading(false);
@@ -235,10 +257,10 @@ export const StudentDashboard: React.FC = () => {
             </h1>
             <p className="text-xs text-blue-100 mt-1">Hello, {currentUser?.name || "Student"} • Digital Queue Pass Manager</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => { setSelectedOrg(null); setSelectedCanteen(null); setActiveTab('shops'); }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 activeTab === 'shops' && !selectedOrg
                   ? 'bg-white text-blue-700 shadow-sm'
                   : 'bg-blue-700/60 hover:bg-blue-700 text-white'
@@ -248,7 +270,7 @@ export const StudentDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => { setSelectedOrg(null); setSelectedCanteen(null); setActiveTab('tokens'); }}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold relative transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold relative transition-all whitespace-nowrap ${
                 activeTab === 'tokens'
                   ? 'bg-white text-blue-700 shadow-sm'
                   : 'bg-blue-700/60 hover:bg-blue-700 text-white'
@@ -650,7 +672,10 @@ export const StudentDashboard: React.FC = () => {
                             <div className="space-y-3">
                               <div className="w-12 h-12 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
                               <div className="space-y-1">
-                                <p className="text-xs font-bold text-blue-700">Uploading to Cloudinary...</p>
+                                <p className="text-xs font-bold text-blue-700 flex items-center justify-center gap-2">
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  <span>Uploading to Cloudinary...</span>
+                                </p>
                                 <div className="w-48 h-1.5 bg-blue-100 rounded-full mx-auto overflow-hidden">
                                   <div 
                                     className="h-full bg-blue-600 rounded-full transition-all duration-300"
@@ -662,16 +687,16 @@ export const StudentDashboard: React.FC = () => {
                             </div>
                           ) : (
                             <>
-                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/20">
+                              <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-blue-500/20">
                                 <Upload className="w-6 h-6 text-white" />
                               </div>
                               <p className="text-sm font-bold text-slate-700">Click to browse or drag document</p>
-                              <p className="text-[11px] text-slate-400 mt-1">PDF, JPG, PNG • Max 5MB • Stored on Cloudinary CDN</p>
+                              <p className="text-[11px] text-slate-400 mt-1">PDF, JPG, PNG • Max 10MB • Stored on Cloudinary CDN</p>
                             </>
                           )}
                         </div>
                       ) : (
-                        <div className="bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 p-4 rounded-xl flex items-center justify-between">
+                        <div className="bg-linear-to-r from-emerald-50 to-blue-50 border border-emerald-200 p-4 rounded-xl flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
                               <CheckCircle className="w-5 h-5 text-emerald-600" />
@@ -788,7 +813,7 @@ export const StudentDashboard: React.FC = () => {
 
                     <button
                       onClick={() => triggerCheckout('xerox')}
-                      disabled={!xeroxFile || isCheckout}
+                      disabled={!xeroxFile || isCheckout || isUploading}
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                     >
                       <Printer className="w-4 h-4" />
@@ -813,7 +838,7 @@ export const StudentDashboard: React.FC = () => {
                   <div className="divide-y divide-slate-100">
                     {(inventories[selectedOrg._id] || []).map(item => (
                       <div key={item.id} className="py-3 flex justify-between items-center gap-4 text-xs">
-                        <div className="space-y-0.5 flex-grow">
+                        <div className="space-y-0.5 grow">
                           <div className="flex items-center gap-2">
                             <p className="font-bold text-slate-900">{item.name}</p>
                             <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.2 rounded">{item.category}</span>

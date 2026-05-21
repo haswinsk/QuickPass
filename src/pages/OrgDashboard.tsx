@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { MenuItem, InventoryItem } from '../mockDB';
 import { Search, CheckCircle2, ChevronRight, ShoppingBag, Plus, Trash2, AlertCircle, TrendingUp, CheckCircle, Clock, Coffee, ShieldCheck } from 'lucide-react';
@@ -24,11 +24,6 @@ export const OrgDashboard: React.FC = () => {
   // Scoped organization details
   const myOrg = organizations.find(o => o._id === currentUser?.organizationId);
   const isCanteenType = myOrg?.organizationType === 'canteen';
-  
-  console.log('OrgDashboard - myOrg:', myOrg);
-  console.log('OrgDashboard - currentUser:', currentUser);
-  console.log('OrgDashboard - inventories:', inventories);
-  console.log('OrgDashboard - inventory for myOrg:', myOrg ? inventories[myOrg._id] : 'myOrg is undefined');
 
   // Filters state
   const [searchToken, setSearchToken] = useState('');
@@ -38,6 +33,17 @@ export const OrgDashboard: React.FC = () => {
   const myCanteens = canteens.filter(c => c.organizationId === myOrg?._id);
   const [selectedCanteenId, setSelectedCanteenId] = useState<string>(myCanteens[0]?._id || '');
   const activeCanteen = myCanteens.find(c => c._id === selectedCanteenId);
+
+  useEffect(() => {
+    if (myCanteens.length === 0) {
+      setSelectedCanteenId('');
+      return;
+    }
+
+    if (!selectedCanteenId || !myCanteens.some(canteen => canteen._id === selectedCanteenId)) {
+      setSelectedCanteenId(myCanteens[0]._id);
+    }
+  }, [myCanteens, selectedCanteenId]);
 
   // New item forms state
   const [newFoodName, setNewFoodName] = useState('');
@@ -228,10 +234,10 @@ export const OrgDashboard: React.FC = () => {
           </div>
 
           {/* Navigation links */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setActiveTab('orders')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 activeTab === 'orders'
                   ? 'bg-blue-600 text-white shadow'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
@@ -241,7 +247,7 @@ export const OrgDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('catalog')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 activeTab === 'catalog'
                   ? 'bg-blue-600 text-white shadow'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
@@ -251,7 +257,7 @@ export const OrgDashboard: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab('profile')}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
                 activeTab === 'profile'
                   ? 'bg-blue-600 text-white shadow'
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
@@ -403,7 +409,7 @@ export const OrgDashboard: React.FC = () => {
                             </a>
                           </div>
                         ) : (
-                          <div className="space-y-0.5 max-h-[80px] overflow-y-auto">
+                          <div className="space-y-0.5 max-h-20 overflow-y-auto">
                             {order.items?.map((item, idx) => (
                               <p key={idx} className="text-xs text-slate-700">
                                 • {item.name} <strong className="text-slate-950 font-bold">x{item.quantity}</strong>
