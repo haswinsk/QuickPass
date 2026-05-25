@@ -107,4 +107,6 @@ const orderSchema = new mongoose.Schema({
   timestamps: true
 });
 
+orderSchema.index({ organizationId: 1, tokenNumber: 1 }, { unique: true });
+
 export default mongoose.model('Order', orderSchema);

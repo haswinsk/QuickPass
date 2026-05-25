@@ -6,12 +6,20 @@ import { StudentDashboard } from './pages/StudentDashboard';
 import { OrgDashboard } from './pages/OrgDashboard';
 import { SuperAdminDashboard } from './pages/SuperAdminDashboard';
 import { LogOut, Store, Layers } from 'lucide-react';
+import { SessionManager } from './config/api';
 
 type PageRoute = 'landing' | 'login' | 'register' | 'register-org' | 'student-dashboard' | 'org-dashboard' | 'admin-dashboard';
 
 const MainAppContent: React.FC = () => {
   const { currentUser, logout } = useApp();
-  const [currentPage, setCurrentPage] = useState<PageRoute>('landing');
+  const [currentPage, setCurrentPage] = useState<PageRoute>(() => {
+    const savedUser = SessionManager.getUser();
+    if (!savedUser) return 'landing';
+    if (savedUser.role === 'student') return 'student-dashboard';
+    if (savedUser.role === 'organization_admin') return 'org-dashboard';
+    if (savedUser.role === 'super_admin') return 'admin-dashboard';
+    return 'landing';
+  });
 
   // Auto-redirect when currentUser changes (e.g. from shortcut login toolbar)
   useEffect(() => {
@@ -29,7 +37,7 @@ const MainAppContent: React.FC = () => {
         setCurrentPage('landing');
       }
     }
-  }, [currentUser]);
+  }, [currentPage, currentUser]);
 
   // Handle manual navigation guards
   const navigateTo = (page: PageRoute) => {
@@ -70,7 +78,7 @@ const MainAppContent: React.FC = () => {
             </div>
 
             {/* Navigation options */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap justify-end">
               {currentUser ? (
                 <>
                   {/* Logged in buttons */}

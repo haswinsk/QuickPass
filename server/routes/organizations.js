@@ -7,6 +7,14 @@ import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const canAccessOrganization = (req, organizationId) => {
+  if (req.user.role === 'super_admin') return true;
+  if (req.user.role === 'organization_admin') {
+    return req.user.organizationId?.toString() === organizationId.toString();
+  }
+  return true;
+};
+
 // Get approved organizations (public - for students)
 router.get('/approved', async (req, res) => {
   try {
@@ -34,6 +42,10 @@ router.get('/', auth, async (req, res) => {
 // Get organization by ID
 router.get('/:id', auth, async (req, res) => {
   try {
+    if (!canAccessOrganization(req, req.params.id)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
     const organization = await Organization.findById(req.params.id);
     if (!organization) {
       return res.status(404).json({ message: 'Organization not found' });
@@ -86,6 +98,10 @@ router.delete('/:id', auth, async (req, res) => {
 // Get canteens for organization
 router.get('/:id/canteens', auth, async (req, res) => {
   try {
+    if (!canAccessOrganization(req, req.params.id)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
     const canteens = await Canteen.find({ organizationId: req.params.id });
     res.json(canteens);
   } catch (error) {
@@ -96,6 +112,10 @@ router.get('/:id/canteens', auth, async (req, res) => {
 // Add canteen
 router.post('/:id/canteens', auth, async (req, res) => {
   try {
+    if (!canAccessOrganization(req, req.params.id)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
     const { name } = req.body;
     const canteen = await Canteen.create({
       organizationId: req.params.id,
@@ -114,6 +134,10 @@ router.delete('/:id/canteens/:canteenId', auth, async (req, res) => {
     const organization = await Organization.findById(req.params.id);
     if (!organization) {
       return res.status(404).json({ message: 'Organization not found' });
+    }
+
+    if (!canAccessOrganization(req, req.params.id)) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
 
     const canteen = await Canteen.findById(req.params.canteenId);
@@ -140,6 +164,11 @@ router.patch('/canteens/:canteenId/menu', auth, async (req, res) => {
     if (!canteen) {
       return res.status(404).json({ message: 'Canteen not found' });
     }
+
+    if (!canAccessOrganization(req, canteen.organizationId)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
     canteen.menu = menu;
     await canteen.save();
     res.json({ success: true, canteen });
@@ -162,6 +191,11 @@ router.get('/:id/inventory', async (req, res) => {
 router.patch('/:id/inventory', auth, async (req, res) => {
   try {
     const { items } = req.body;
+
+    if (!canAccessOrganization(req, req.params.id)) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
     let inventory = await Inventory.findOne({ organizationId: req.params.id });
     
     if (!inventory) {

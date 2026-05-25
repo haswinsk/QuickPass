@@ -154,40 +154,71 @@ export const verifyRazorpaySignature = async (
 };
 
 // Session token management
+const AUTH_TOKEN_KEY = 'auth_token';
+const AUTH_USER_KEY = 'auth_user';
+const LEGACY_TOKEN_KEY = 'qp_auth_token';
+const LEGACY_USER_KEY = 'qp_auth_user';
+
+const readStorageItem = (primaryKey: string, legacyKey: string): string | null => {
+  return localStorage.getItem(primaryKey) ?? localStorage.getItem(legacyKey);
+};
+
 export const SessionManager = {
   getToken: (): string | null => {
-    return localStorage.getItem('qp_auth_token');
+    const token = readStorageItem(AUTH_TOKEN_KEY, LEGACY_TOKEN_KEY);
+    if (token) {
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+      localStorage.setItem(LEGACY_TOKEN_KEY, token);
+    }
+    return token;
   },
   
   setToken: (token: string): void => {
-    localStorage.setItem('qp_auth_token', token);
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    localStorage.setItem(LEGACY_TOKEN_KEY, token);
   },
   
   removeToken: (): void => {
-    localStorage.removeItem('qp_auth_token');
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
   },
   
   getUser: (): JWTPayload | null => {
-    const userStr = localStorage.getItem('qp_auth_user');
+    const userStr = readStorageItem(AUTH_USER_KEY, LEGACY_USER_KEY);
     if (!userStr) return null;
     try {
-      return JSON.parse(userStr);
+      const user = JSON.parse(userStr);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+      localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(user));
+      return user;
     } catch {
       return null;
     }
   },
   
   setUser: (user: any): void => {
-    localStorage.setItem('qp_auth_user', JSON.stringify(user));
+    const serialized = JSON.stringify(user);
+    localStorage.setItem(AUTH_USER_KEY, serialized);
+    localStorage.setItem(LEGACY_USER_KEY, serialized);
   },
   
   removeUser: (): void => {
-    localStorage.removeItem('qp_auth_user');
+    localStorage.removeItem(AUTH_USER_KEY);
+    localStorage.removeItem(LEGACY_USER_KEY);
   },
   
   clearSession: (): void => {
-    localStorage.removeItem('qp_auth_token');
-    localStorage.removeItem('qp_auth_user');
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+    localStorage.removeItem(LEGACY_USER_KEY);
+  },
+
+  getSession: (): { token: string | null; user: JWTPayload | null } => {
+    return {
+      token: SessionManager.getToken(),
+      user: SessionManager.getUser(),
+    };
   }
 };
 

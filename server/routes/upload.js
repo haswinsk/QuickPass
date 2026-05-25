@@ -5,17 +5,41 @@ import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const allowedMimeTypes = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png'
+]);
+
 // Configure multer for memory storage with size limit
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (allowedMimeTypes.has(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+
+    cb(new Error('Invalid file type. Only PDF, JPG, and PNG are allowed.'));
   }
 });
 
+const handleSingleUpload = (req, res, next) => {
+  upload.single('file')(req, res, (error) => {
+    if (error) {
+      return next(error);
+    }
+
+    return next();
+  });
+};
+
 // Upload file to Cloudinary
-router.post('/', auth, upload.single('file'), async (req, res) => {
+router.post('/', auth, handleSingleUpload, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
@@ -47,6 +71,26 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     console.error('Upload error:', error);
     res.status(500).json({ message: 'Upload failed', error: error.message });
   }
+});
+
+router.use((error, req, res, next) => {
+  if (!error) {
+    return next();
+  }
+
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ message: 'File too large. Please upload a file under 50MB.' });
+    }
+
+    return res.status(400).json({ message: error.message });
+  }
+
+  if (error.message?.includes('Invalid file type')) {
+    return res.status(400).json({ message: error.message });
+  }
+
+  return res.status(500).json({ message: 'Upload failed', error: error.message });
 });
 
 // Delete file from Cloudinary
