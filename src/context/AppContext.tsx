@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authAPI, ordersAPI, organizationsAPI, uploadAPI, paymentsAPI } from '../api/client';
+import { signInWithGoogle, firebaseSignOut } from '../config/firebase';
 import { openRazorpayCheckout, loadRazorpayScript, RazorpaySuccessResponse } from '../config/razorpay';
 import { SessionManager } from '../config/api';
 import { Toast } from '../components/Toast';
@@ -312,21 +313,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const loginWithGoogleFn = async () => {
     setIsLoading(true);
     try {
-      const emailInput = window.prompt('Enter your Google email address to continue:');
-      if (!emailInput) {
+      const result = await signInWithGoogle();
+      if (!result) {
         setIsLoading(false);
-        return { success: false, error: 'Google sign-in was cancelled.' };
+        return { success: false, error: 'Google sign-in was cancelled or failed.' };
       }
 
-      const email = emailInput.trim().toLowerCase();
-      const defaultName = email.split('@')[0] || 'Student';
-      const nameInput = window.prompt('Enter your display name:', defaultName);
-      const name = (nameInput || defaultName).trim();
-
-      if (!email || !name) {
-        setIsLoading(false);
-        return { success: false, error: 'Name and email are required.' };
-      }
+      const { user: firebaseUser } = result;
+      const name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Student';
+      const email = firebaseUser.email || '';
 
       const apiResult = await authAPI.loginWithGoogle(email, name);
       setIsLoading(false);
@@ -348,6 +343,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = async () => {
+    try {
+      await firebaseSignOut();
+    } catch {
+      // Firebase sign-out may fail if not signed in via Firebase
+    }
     setCurrentUser(null);
     setToken(null);
     SessionManager.clearSession();
