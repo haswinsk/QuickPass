@@ -5,9 +5,19 @@ import { auth } from '../middleware/auth.js';
 
 const router = express.Router();
 
+const isRazorpayConfigured = () => Boolean(
+  razorpay && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET
+);
+
 // Create Razorpay order
 router.post('/create-order', auth, async (req, res) => {
   try {
+    if (!isRazorpayConfigured()) {
+      return res.status(503).json({
+        message: 'Razorpay is not configured on this deployment',
+      });
+    }
+
     const { amount, currency = 'INR', receipt } = req.body;
 
     const options = {
@@ -32,6 +42,12 @@ router.post('/create-order', auth, async (req, res) => {
 // Verify Razorpay payment
 router.post('/verify', auth, async (req, res) => {
   try {
+    if (!isRazorpayConfigured()) {
+      return res.status(503).json({
+        message: 'Razorpay is not configured on this deployment',
+      });
+    }
+
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
     const generated_signature = crypto
@@ -61,6 +77,12 @@ router.post('/verify', auth, async (req, res) => {
 // Get payment details
 router.get('/:paymentId', auth, async (req, res) => {
   try {
+    if (!isRazorpayConfigured()) {
+      return res.status(503).json({
+        message: 'Razorpay is not configured on this deployment',
+      });
+    }
+
     const payment = await razorpay.payments.fetch(req.params.paymentId);
     res.json({ success: true, payment });
   } catch (error) {
