@@ -38,12 +38,26 @@ const handleSingleUpload = (req, res, next) => {
   });
 };
 
+const countPdfPages = (buffer) => {
+  try {
+    const content = buffer.toString('latin1');
+    const pageMatches = content.match(/\/Type\s*\/Page(?!s)\b/g);
+    return pageMatches ? pageMatches.length : null;
+  } catch (error) {
+    return null;
+  }
+};
+
 // Upload file to Cloudinary
 router.post('/', auth, handleSingleUpload, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
+
+    const pageCount = req.file.mimetype === 'application/pdf'
+      ? countPdfPages(req.file.buffer)
+      : null;
 
     // Upload to Cloudinary
     const result = await new Promise((resolve, reject) => {
@@ -66,6 +80,7 @@ router.post('/', auth, handleSingleUpload, async (req, res) => {
       resourceType: result.resource_type,
       format: result.format,
       bytes: result.bytes,
+      pageCount,
     });
   } catch (error) {
     console.error('Upload error:', error);

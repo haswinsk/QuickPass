@@ -65,6 +65,22 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  publicId: {
+    type: String,
+    default: null
+  },
+  resourceType: {
+    type: String,
+    default: null
+  },
+  fileFormat: {
+    type: String,
+    default: null
+  },
+  pageCount: {
+    type: Number,
+    default: null
+  },
   copies: {
     type: Number,
     default: null

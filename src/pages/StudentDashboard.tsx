@@ -34,7 +34,7 @@ export const StudentDashboard: React.FC = () => {
   const [selectedCanteen, setSelectedCanteen] = useState<Canteen | null>(null);
   
   // Xerox Form state with Cloudinary URL
-  const [xeroxFile, setXeroxFile] = useState<{ name: string; size: string; content: string; cloudinaryUrl?: string; publicId?: string } | null>(null);
+  const [xeroxFile, setXeroxFile] = useState<{ name: string; size: string; content: string; cloudinaryUrl?: string; publicId?: string; resourceType?: string; fileFormat?: string; pageCount?: number | null } | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [copies, setCopies] = useState<number>(1);
@@ -107,7 +107,10 @@ export const StudentDashboard: React.FC = () => {
           size: formatBytes(file.size),
           content: result.url,
           cloudinaryUrl: result.url,
-          publicId: result.publicId
+          publicId: result.publicId,
+          resourceType: result.resourceType,
+          fileFormat: result.format,
+          pageCount: result.pageCount ?? null
         });
         showNotification(`File "${file.name}" uploaded successfully to cloud!`, 'success');
       } else {
@@ -194,7 +197,10 @@ export const StudentDashboard: React.FC = () => {
         showNotification('Please select or upload a document first.', 'error');
         return;
       }
-      const cost = (printType === 'color' ? 10 : 2) * copies;
+      const pageCount = xeroxFile.pageCount ?? 1;
+      const ratePerPage = printType === 'color' ? 10 : 2;
+      const totalPages = pageCount * copies;
+      const cost = ratePerPage * totalPages;
       let paymentId: string | undefined;
       if (xeroxPayType === 'online') {
         setIsCheckout(true);
@@ -723,30 +729,7 @@ export const StudentDashboard: React.FC = () => {
                         </div>
                       )}
 
-                      {/* File presets shortcuts */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Or use a mock assignment preset for testing:</span>
-                        <div className="flex flex-wrap gap-1.5">
-                          <button
-                            onClick={() => selectPresetFile("EE_Lab_Manual_Ch3.pdf", "1.8 MB")}
-                            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[10px] px-2 py-1 rounded transition-colors"
-                          >
-                            EE_Lab_Manual.pdf
-                          </button>
-                          <button
-                            onClick={() => selectPresetFile("Maths_Formulae_Sheet.png", "840 KB")}
-                            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[10px] px-2 py-1 rounded transition-colors"
-                          >
-                            Maths_Sheet.png
-                          </button>
-                          <button
-                            onClick={() => selectPresetFile("Seminar_Presentation.pdf", "4.2 MB")}
-                            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-[10px] px-2 py-1 rounded transition-colors"
-                          >
-                            Seminar_Pres.pdf
-                          </button>
-                        </div>
-                      </div>
+                      {/* File presets shortcuts removed from UI */}
                     </div>
 
                     {/* Quantity and Color/BW */}
@@ -807,8 +790,14 @@ export const StudentDashboard: React.FC = () => {
 
                     {/* Estimated xerox summary cost */}
                     <div className="bg-slate-50 border border-slate-100 p-3 rounded-lg flex justify-between items-center text-xs">
-                      <span className="text-slate-500 font-semibold uppercase text-[10px]">Estimated Price (assuming 1 page count):</span>
-                      <strong className="text-slate-900 font-mono text-sm">₹{( (printType === 'color' ? 10 : 2) * copies ).toFixed(2)}</strong>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-semibold uppercase text-[10px]">Detected Pages:</span>
+                        <strong className="text-slate-900 font-mono text-sm">{xeroxFile?.pageCount ?? 'Pending'}</strong>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-semibold uppercase text-[10px]">Estimated Total:</span>
+                        <strong className="text-slate-900 font-mono text-sm">₹{(((printType === 'color' ? 10 : 2) * (xeroxFile?.pageCount || 1)) * copies).toFixed(2)}</strong>
+                      </div>
                     </div>
 
                     <button

@@ -85,8 +85,11 @@ export const getOptimizedUrl = (publicId: string, options?: {
 };
 
 // Generate download URL for uploaded documents
-export const getDownloadUrl = (publicId: string, fileName: string): string => {
-  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/raw/upload/fl_attachment:${fileName}/${publicId}`;
+export const getDownloadUrl = (publicId: string, fileName: string, resourceType: string = 'image', format?: string): string => {
+  const safeFileName = encodeURIComponent(fileName);
+  const cloudResourceType = resourceType === 'raw' ? 'raw' : 'image';
+  const formattedPublicId = format && cloudResourceType !== 'raw' ? `${publicId}.${format}` : publicId;
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/${cloudResourceType}/upload/fl_attachment:${safeFileName}/${formattedPublicId}`;
 };
 
 // Delete file from Cloudinary (would need server-side implementation)
