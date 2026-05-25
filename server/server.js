@@ -15,7 +15,6 @@ const app = express();
 // Connect to MongoDB (start attempts asynchronously)
 connectDB();
 
-// If DB isn't connected yet, reject API requests (except health) with 503
 app.use('/api', (req, res, next) => {
   if (req.path === '/health') return next();
   if (!isDBConnected()) {
@@ -27,7 +26,19 @@ app.use('/api', (req, res, next) => {
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Middleware
+app.use(cors());
+// Connect to MongoDB (start attempts asynchronously)
+connectDB();
+
+// If DB isn't connected yet, reject API requests (except health) with 503
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next();
+  if (!isDBConnected()) {
+    return res.status(503).json({ message: 'Service temporarily unavailable: database not connected' });
+  }
+  next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
