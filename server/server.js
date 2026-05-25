@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import connectDB from './config/db.js';
+import connectDB, { isDBConnected } from './config/db.js';
 import authRoutes from './routes/auth.js';
 import orderRoutes from './routes/orders.js';
 import organizationRoutes from './routes/organizations.js';
@@ -12,8 +12,17 @@ dotenv.config();
 
 const app = express();
 
-// Connect to MongoDB
+// Connect to MongoDB (start attempts asynchronously)
 connectDB();
+
+// If DB isn't connected yet, reject API requests (except health) with 503
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next();
+  if (!isDBConnected()) {
+    return res.status(503).json({ message: 'Service temporarily unavailable: database not connected' });
+  }
+  next();
+});
 
 // Middleware
 app.use(cors());
@@ -29,7 +38,7 @@ app.use('/api/payments', paymentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+  res.json({ status: 'ok', message: 'Server is running', db: isDBConnected() ? 'connected' : 'disconnected' });
 });
 
 const PORT = process.env.PORT || 5000;
