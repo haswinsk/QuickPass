@@ -39,10 +39,10 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onNavigate }) =>
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 min-h-[85vh] flex items-center justify-center py-10 px-4">
+    <div className="bg-linear-to-br from-slate-50 via-blue-50/30 to-slate-50 min-h-[85vh] flex items-center justify-center py-10 px-4">
       <div className="w-full max-w-md bg-white border border-slate-200 shadow-xl shadow-blue-500/5 rounded-2xl overflow-hidden p-8 space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-black text-lg mx-auto shadow-lg shadow-blue-500/25">
+          <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-black text-lg mx-auto shadow-lg shadow-blue-500/25">
             QP
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mt-3">Welcome Back</h2>
@@ -51,7 +51,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onNavigate }) =>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-3 flex items-start gap-2">
-            <ShieldAlert className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <ShieldAlert className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
@@ -93,7 +93,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onNavigate }) =>
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -108,12 +108,12 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onNavigate }) =>
 
         {/* Google Divider */}
         <div className="flex items-center">
-          <div className="flex-grow border-t border-slate-200"></div>
-          <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 uppercase">Or continue with</span>
-          <div className="flex-grow border-t border-slate-200"></div>
+          <div className="grow border-t border-slate-200"></div>
+          <span className="shrink mx-3 text-[10px] font-bold text-slate-400 uppercase">Or continue with</span>
+          <div className="grow border-t border-slate-200"></div>
         </div>
 
-        {/* Real Firebase Google Login Button */}
+        {/* Backend-backed Google login button */}
         <button
           type="button"
           onClick={handleGoogleLogin}
@@ -126,7 +126,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onNavigate }) =>
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          <span>{isLoading ? 'Connecting to Google...' : 'Sign in with Google'}</span>
+          <span>{isLoading ? 'Connecting...' : 'Continue with Google email'}</span>
         </button>
 
         <div className="text-center pt-2 text-xs text-slate-600 space-y-1.5">
@@ -184,10 +184,10 @@ export const StudentRegisterPage: React.FC<AuthPageProps> = ({ onSuccess, onNavi
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 min-h-[85vh] flex items-center justify-center py-10 px-4">
+    <div className="bg-linear-to-br from-slate-50 via-blue-50/30 to-slate-50 min-h-[85vh] flex items-center justify-center py-10 px-4">
       <div className="w-full max-w-md bg-white border border-slate-200 shadow-xl shadow-blue-500/5 rounded-2xl overflow-hidden p-8 space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-black text-lg mx-auto shadow-lg shadow-blue-500/25">
+          <div className="w-12 h-12 rounded-xl bg-linear-to-br from-blue-600 to-blue-700 flex items-center justify-center text-white font-black text-lg mx-auto shadow-lg shadow-blue-500/25">
             QP
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mt-3">Student Sign Up</h2>
@@ -196,7 +196,7 @@ export const StudentRegisterPage: React.FC<AuthPageProps> = ({ onSuccess, onNavi
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-3 flex items-start gap-2">
-            <ShieldAlert className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <ShieldAlert className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
@@ -240,7 +240,7 @@ export const StudentRegisterPage: React.FC<AuthPageProps> = ({ onSuccess, onNavi
           </div>
 
           <button type="submit" disabled={isLoading}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
+            className="w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
             {isLoading ? (<><Loader2 className="w-4 h-4 animate-spin" /><span>Creating Account...</span></>) : (<span>Create Account</span>)}
           </button>
         </form>
@@ -333,9 +333,9 @@ export const OrgRegisterPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
 
   if (onboardingSuccess) {
     return (
-      <div className="bg-gradient-to-br from-slate-50 via-emerald-50/30 to-slate-50 min-h-[85vh] flex items-center justify-center py-10 px-4">
+      <div className="bg-linear-to-br from-slate-50 via-emerald-50/30 to-slate-50 min-h-[85vh] flex items-center justify-center py-10 px-4">
         <div className="w-full max-w-lg bg-white border border-slate-200 shadow-xl rounded-2xl overflow-hidden p-8 text-center space-y-6">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-lg shadow-emerald-500/25">
+          <div className="w-16 h-16 bg-linear-to-br from-emerald-500 to-emerald-600 text-white rounded-2xl flex items-center justify-center text-3xl mx-auto shadow-lg shadow-emerald-500/25">
             ✓
           </div>
           <h2 className="text-2xl font-bold text-slate-900">Registration Complete!</h2>
@@ -361,7 +361,7 @@ export const OrgRegisterPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 min-h-[85vh] flex items-center justify-center py-10 px-4">
+    <div className="bg-linear-to-br from-slate-50 via-blue-50/30 to-slate-50 min-h-[85vh] flex items-center justify-center py-10 px-4">
       <div className="w-full max-w-2xl bg-white border border-slate-200 shadow-xl shadow-blue-500/5 rounded-2xl overflow-hidden p-8 space-y-6">
 
         <div className="text-center space-y-2">
@@ -385,7 +385,7 @@ export const OrgRegisterPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg p-3 flex items-start gap-2">
-            <ShieldAlert className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+            <ShieldAlert className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
@@ -481,7 +481,7 @@ export const OrgRegisterPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
             </div>
 
             <button type="button" onClick={handleNext}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-1">
+              className="w-full bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-1">
               <span>Continue to Admin Settings</span>
               <ArrowRight className="w-4 h-4" />
             </button>
@@ -531,7 +531,7 @@ export const OrgRegisterPage: React.FC<AuthPageProps> = ({ onNavigate }) => {
                 Back
               </button>
               <button type="submit" disabled={isLoading}
-                className="w-2/3 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
+                className="w-2/3 bg-linear-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white font-semibold py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-60 flex items-center justify-center gap-2">
                 {isLoading ? (<><Loader2 className="w-4 h-4 animate-spin" /><span>Onboarding Vendor...</span></>) : (<span>Register & Onboard Shop</span>)}
               </button>
             </div>
