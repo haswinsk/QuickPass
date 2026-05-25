@@ -3,20 +3,41 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const connectDB = async () => {
-  try {
-    if (!process.env.MONGODB_URI) {
-      console.warn('MONGODB_URI is not configured; starting without a database connection');
-      return null;
-    }
+let connected = false;
 
-    const conn = await mongoose.connect(process.env.MONGODB_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-    return conn;
-  } catch (error) {
-    console.error(`Error: ${error.message}`);
+const connectWithRetry = async (retries = 3, delayMs = 3000) => {
+  if (!process.env.MONGODB_URI) {
+    console.warn('MONGODB_URI is not configured; starting without a database connection');
     return null;
   }
+
+  // Avoid buffering commands while not connected so requests fail fast
+  mongoose.set('bufferCommands', false);
+
+  const opts = {
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10000,
+  };
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const conn = await mongoose.connect(process.env.MONGODB_URI, opts);
+      connected = true;
+      console.log(`MongoDB Connected: ${conn.connection.host}`);
+      return conn;
+    } catch (err) {
+      console.error(`MongoDB connection attempt ${attempt} failed: ${err.message}`);
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+  }
+
+  console.error('MongoDB connection failed after retries');
+  connected = false;
+  return null;
 };
 
-export default connectDB;
+const isDBConnected = () => connected || mongoose.connection.readyState === 1;
+
+export { connectWithRetry as default, isDBConnected };
