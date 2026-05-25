@@ -56,6 +56,9 @@ interface Order {
   fileURL?: string;
   fileName?: string;
   fileSize?: string;
+  publicId?: string;
+  resourceType?: string;
+  fileFormat?: string;
   copies?: number;
   printType?: 'color' | 'bw';
   items?: Array<{ name: string; price: number; quantity: number }>;
@@ -118,7 +121,7 @@ interface AppContextType {
   // Student Actions with Razorpay
   placeXeroxOrder: (data: {
     orgId: string;
-    fileData: { name: string; size: string; content: string; file?: File };
+    fileData: { name: string; size: string; content: string; pageCount?: number | null; publicId?: string | null; resourceType?: string | null; fileFormat?: string | null; file?: File };
     copies: number;
     printType: 'color' | 'bw';
     paymentType: 'online' | 'cod';
@@ -190,7 +193,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Load approved organizations (public)
       try {
         const orgs = await organizationsAPI.getOrganizations();
-        console.log('Loaded organizations:', orgs);
         setOrganizations(orgs);
 
         // Load inventories for all organizations from MongoDB
@@ -226,7 +228,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const inventoryPromises = orgs.map(async (org: Organization) => {
               try {
                 const inv = await organizationsAPI.getInventory(org._id);
-                console.log(`Inventory for ${org._id} (${org.organizationName}):`, inv);
                 return { orgId: org._id, items: inv?.items || [] };
               } catch (error) {
                 console.error(`Error loading inventory for ${org._id}:`, error);
@@ -242,7 +243,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 inventoryMap[orgId] = items;
               }
             });
-            console.log('Final inventory map from MongoDB:', inventoryMap);
             setInventories(inventoryMap);
           } catch (error) {
             console.error('Error loading inventories from MongoDB:', error);
@@ -482,7 +482,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Student orders
   const placeXeroxOrder = async (data: {
     orgId: string;
-    fileData: { name: string; size: string; content: string; file?: File };
+    fileData: { name: string; size: string; content: string; pageCount?: number | null; file?: File };
     copies: number;
     printType: 'color' | 'bw';
     paymentType: 'online' | 'cod';
@@ -507,7 +507,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fileData: {
           name: data.fileData.name,
           size: data.fileData.size,
-          content: fileURL
+          content: fileURL,
+          pageCount: data.fileData.pageCount ?? null,
+          publicId: data.fileData.publicId ?? null,
+          resourceType: data.fileData.resourceType ?? null,
+          fileFormat: data.fileData.fileFormat ?? null
         },
         copies: data.copies,
         printType: data.printType,

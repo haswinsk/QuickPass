@@ -22,7 +22,7 @@ const getNextTokenNumber = async ({ orgId, orderType, canteenId }) => {
     try {
       const counter = await TokenCounter.findOneAndUpdate(
         { key: scopeKey },
-        { $inc: { sequence: 1 }, $setOnInsert: { sequence: 100 } },
+        { $inc: { sequence: 1 } },
         { new: true, upsert: true, setDefaultsOnInsert: true }
       );
 
@@ -88,6 +88,10 @@ router.post('/xerox', auth, async (req, res) => {
       fileURL: fileData.content,
       fileName: fileData.name,
       fileSize: fileData.size,
+      publicId: fileData.publicId ?? null,
+      resourceType: fileData.resourceType ?? null,
+      fileFormat: fileData.fileFormat ?? null,
+      pageCount: fileData.pageCount ?? null,
       copies,
       printType,
       quantity: copies,
@@ -213,6 +217,83 @@ router.post('/canteen', auth, async (req, res) => {
     });
     
     res.status(201).json({ success: true, order });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Download Xerox attachment through backend so browsers treat it as a same-origin file download.
+router.get('/:id/download', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (req.user.role === 'organization_admin' && order.organizationId.toString() !== req.user.organizationId?.toString()) {
+      return res.status(403).json({ message: 'Not authorized to download this order' });
+    }
+
+    if (req.user.role !== 'organization_admin' && req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Not authorized to download orders' });
+    }
+
+    if (!order.fileURL) {
+      return res.status(404).json({ message: 'No file available for this order' });
+    }
+
+    const upstream = await fetch(order.fileURL);
+    if (!upstream.ok || !upstream.body) {
+      return res.status(502).json({ message: 'Unable to fetch the uploaded file' });
+    }
+
+    const fileName = order.fileName || 'xerox-document.pdf';
+    const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+
+    const { Readable } = await import('node:stream');
+    const nodeStream = Readable.fromWeb(upstream.body);
+    nodeStream.pipe(res);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// DEV ONLY: download without auth for quick local testing. DISABLED in production.
+router.get('/dev/:id/download', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ message: 'Dev download disabled in production' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (!order.fileURL) {
+      return res.status(404).json({ message: 'No file available for this order' });
+    }
+
+    const upstream = await fetch(order.fileURL);
+    if (!upstream.ok || !upstream.body) {
+      return res.status(502).json({ message: 'Unable to fetch the uploaded file' });
+    }
+
+    const fileName = order.fileName || 'xerox-document.pdf';
+    const contentType = upstream.headers.get('content-type') || 'application/octet-stream';
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Cache-Control', 'no-store');
+
+    const { Readable } = await import('node:stream');
+    const nodeStream = Readable.fromWeb(upstream.body);
+    nodeStream.pipe(res);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

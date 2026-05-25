@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { MenuItem, InventoryItem } from '../mockDB';
 import { Search, CheckCircle2, ChevronRight, ShoppingBag, Plus, Trash2, AlertCircle, TrendingUp, CheckCircle, Clock, Coffee, ShieldCheck } from 'lucide-react';
+import { API_BASE_URL } from '../api/client';
 
 export const OrgDashboard: React.FC = () => {
   const {
@@ -16,7 +17,8 @@ export const OrgDashboard: React.FC = () => {
     createNewCanteen,
     deleteCanteen,
     updateMenu,
-    showNotification
+    showNotification,
+    loginWithGoogle
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'orders' | 'catalog' | 'profile'>('orders');
@@ -192,6 +194,50 @@ export const OrgDashboard: React.FC = () => {
       isAvailable: !item.isAvailable
     };
     manageInventoryItem(myOrg._id, updatedItem);
+  };
+
+  // Download order attachment using authorized fetch and force browser download
+  const handleDownload = async (orderId: string, fileName?: string) => {
+    try {
+      let token = localStorage.getItem('token');
+
+      // If not logged in, prompt Google sign-in (quick path) then retry
+      if (!token) {
+        const loginResult = await loginWithGoogle();
+        if (!loginResult || !loginResult.success) {
+          alert('You must sign in as an admin to download.');
+          return;
+        }
+        token = localStorage.getItem('token');
+      }
+
+      const res = await fetch(`${API_BASE_URL}/orders/${orderId}/download`, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+
+      if (!res.ok) {
+        let errText = res.statusText;
+        try {
+          const j = await res.json(); errText = j.message || errText;
+        } catch (_) {}
+        alert('Download failed: ' + errText);
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'download';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('Download error', err);
+      alert('Download failed. See console for details.');
+    }
   };
 
   if (!myOrg) {
@@ -398,15 +444,15 @@ export const OrgDashboard: React.FC = () => {
                             </div>
                             
                             {/* Multer file action simulation */}
-                            <a
-                              href={order.fileURL}
-                              download={order.fileName}
-                              className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 font-bold"
+                            <button
+                              type="button"
+                              onClick={() => handleDownload(order._id, order.fileName)}
+                              className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5 font-bold bg-transparent border-0 p-0"
                               title="Download uploaded xerox attachment"
                             >
                               <span>📥</span>
                               <span>Retrieve document ({order.fileSize})</span>
-                            </a>
+                            </button>
                           </div>
                         ) : (
                           <div className="space-y-0.5 max-h-20 overflow-y-auto">

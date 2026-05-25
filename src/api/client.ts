@@ -1,6 +1,6 @@
 import { SessionManager } from '../config/api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 export const apiClient = {
   async request(endpoint: string, options: RequestInit = {}) {
